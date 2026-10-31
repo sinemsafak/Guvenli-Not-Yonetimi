@@ -3,6 +3,13 @@
 React ve Flutter ile geliştirilmiş, nesne seviyesinde
 erişim kontrolünü (BOLA/IDOR) öğretmeyi amaçlayan eğitim projesi.
 
+## Görseller 
+<img width="371" height="378" alt="Ekran görüntüsü 2026-10-31 115726" src="https://github.com/user-attachments/assets/bba70bb2-b805-41b5-99ce-dcb684290213" />
+
+
+<img width="372" height="416" alt="Ekran görüntüsü 2026-10-31 115738" src="https://github.com/user-attachments/assets/21db90ed-b4cb-4632-88f5-fcc5c3eb9853" />
+
+
 ## Proje amacı
 
 Kullanıcıların yalnızca kendi özel notlarına erişebilmesini
