@@ -1,121 +1,411 @@
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const SecureNotesApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class DemoUser {
+  final String id;
+  final String name;
+  final String role;
 
-  // This widget is the root of your application.
+  const DemoUser({
+    required this.id,
+    required this.name,
+    required this.role,
+  });
+}
+
+class Note {
+  final String id;
+  final String ownerId;
+  final String title;
+  final String content;
+
+  const Note({
+    required this.id,
+    required this.ownerId,
+    required this.title,
+    required this.content,
+  });
+}
+
+const demoUsers = [
+  DemoUser(
+    id: 'user-A',
+    name: 'Kullanıcı A',
+    role: 'USER',
+  ),
+  DemoUser(
+    id: 'user-B',
+    name: 'Kullanıcı B',
+    role: 'USER',
+  ),
+  DemoUser(
+    id: 'admin-1',
+    name: 'Yönetici',
+    role: 'ADMIN',
+  ),
+];
+
+const notes = [
+  Note(
+    id: 'note-101',
+    ownerId: 'user-A',
+    title: 'Proje planı',
+    content: 'Güvenli not uygulamasının geliştirme adımları.',
+  ),
+  Note(
+    id: 'note-102',
+    ownerId: 'user-A',
+    title: 'Toplantı notları',
+    content: 'Yeni sürüm için yapılacak işler.',
+  ),
+  Note(
+    id: 'note-201',
+    ownerId: 'user-B',
+    title: 'Kişisel notlar',
+    content: 'Kullanıcı B tarafından oluşturulmuş özel not.',
+  ),
+  Note(
+    id: 'note-202',
+    ownerId: 'user-B',
+    title: 'Alışveriş listesi',
+    content: 'Market alışverişi için notlar.',
+  ),
+];
+
+class SecureNotesApp extends StatelessWidget {
+  const SecureNotesApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      debugShowCheckedModeBanner: false,
+      title: 'Güvenli Not Yönetimi',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF315DA4),
+        ),
+        useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const NotesPage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class NotesPage extends StatefulWidget {
+  const NotesPage({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<NotesPage> createState() => _NotesPageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _NotesPageState extends State<NotesPage> {
+  String currentUserId = 'user-A';
+  String attackNoteId = 'note-201';
+  String message = '';
+  Note? selectedNote;
 
-  void _incrementCounter() {
+  DemoUser get currentUser {
+    return demoUsers.firstWhere(
+      (user) => user.id == currentUserId,
+    );
+  }
+
+  List<Note> get visibleNotes {
+    if (currentUser.role == 'ADMIN') {
+      return [];
+    }
+
+    return notes.where((note) {
+      return note.ownerId == currentUser.id;
+    }).toList();
+  }
+
+  void openNote(Note note) {
+    // Sadece demo amaçlı istemci kontrolüdür.
+    // Gerçek sahiplik kontrolü API sunucusunda yapılır.
+    if (note.ownerId != currentUser.id) {
+      setState(() {
+        selectedNote = null;
+        message = 'Erişim reddedildi: Bu not size ait değil.';
+      });
+      return;
+    }
+
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      selectedNote = note;
+      message = 'Not başarıyla görüntülendi.';
+    });
+  }
+
+  void simulateIdorAttack() {
+    final targetNote = notes.where(
+      (note) => note.id == attackNoteId.trim(),
+    );
+
+    if (targetNote.isEmpty) {
+      setState(() {
+        selectedNote = null;
+        message = '404: Not bulunamadı.';
+      });
+      return;
+    }
+
+    final note = targetNote.first;
+
+    if (note.ownerId != currentUser.id) {
+      setState(() {
+        selectedNote = null;
+        message =
+            '403 simülasyonu: Başka kullanıcının notuna erişim reddedildi.';
+      });
+      return;
+    }
+
+    setState(() {
+      selectedNote = note;
+      message = 'Kendi notunuza erişim sağlandı.';
+    });
+  }
+
+  void changeUser(String? userId) {
+    if (userId == null) return;
+
+    setState(() {
+      currentUserId = userId;
+      selectedNote = null;
+      message = '';
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
+      backgroundColor: const Color(0xFFF3F6FB),
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: const Text('Güvenli Not Yönetimi'),
+        backgroundColor: Colors.white,
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(18),
           children: [
-            const Text('You have pushed the button this many times:'),
+            const Text(
+              'GÜVENLİK EĞİTİM PROJESİ',
+              style: TextStyle(
+                color: Color(0xFF4268AA),
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.3,
+              ),
+            ),
+            const SizedBox(height: 8),
             Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+              'Merhaba, ${currentUser.name}',
+              style: const TextStyle(
+                fontSize: 25,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 18),
+
+            Card(
+              color: const Color(0xFFFFF5DD),
+              child: const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'Bu ekran eğitim amaçlıdır. Kullanıcı seçimi ve '
+                  'sahiplik kontrolleri gerçek kimlik doğrulaması '
+                  'değildir. Güvenlik kontrolü sunucuda yapılmalıdır.',
+                  style: TextStyle(height: 1.5),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 18),
+
+            const Text(
+              'Demo kullanıcısı',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+
+            const SizedBox(height: 8),
+
+            DropdownButtonFormField<String>(
+              initialValue: currentUserId,
+              decoration: const InputDecoration(
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(),
+              ),
+              items: demoUsers.map((user) {
+                return DropdownMenuItem(
+                  value: user.id,
+                  child: Text('${user.name} (${user.role})'),
+                );
+              }).toList(),
+              onChanged: changeUser,
+            ),
+
+            const SizedBox(height: 25),
+
+            const Text(
+              'Notlarım',
+              style: TextStyle(
+                fontSize: 21,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            if (currentUser.role == 'ADMIN')
+              const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(18),
+                  child: Text(
+                    'Yönetici için otomatik not erişimi yoktur. '
+                    'Tanımlı yetki ve iş gereği kontrol edilmelidir.',
+                  ),
+                ),
+              )
+            else if (visibleNotes.isEmpty)
+              const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(18),
+                  child: Text('Henüz not bulunmuyor.'),
+                ),
+              )
+            else
+              ...visibleNotes.map((note) {
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: ListTile(
+                    title: Text(
+                      note.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '${note.content}\n${note.id}',
+                    ),
+                    isThreeLine: true,
+                    trailing: const Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16,
+                    ),
+                    onTap: () => openNote(note),
+                  ),
+                );
+              }),
+
+            const SizedBox(height: 25),
+
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'IDOR / BOLA güvenlik testi',
+                      style: TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Başka kullanıcıya ait not kimliğiyle '
+                      'erişim denemesi yapın.',
+                    ),
+                    const SizedBox(height: 15),
+
+                    TextField(
+                      decoration: const InputDecoration(
+                        labelText: 'Hedef not kimliği',
+                        border: OutlineInputBorder(),
+                      ),
+                      controller: TextEditingController(
+                        text: attackNoteId,
+                      ),
+                      onChanged: (value) {
+                        attackNoteId = value;
+                      },
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: simulateIdorAttack,
+                        child: const Text('Erişimi dene'),
+                      ),
+                    ),
+
+                    if (message.isNotEmpty) ...[
+                      const SizedBox(height: 14),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(13),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEAF0FA),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(message),
+                      ),
+                    ],
+
+                    if (selectedNote != null) ...[
+                      const Divider(height: 25),
+                      Text(
+                        selectedNote!.title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(selectedNote!.content),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 25),
+
+            const Text(
+              'Güvenlik ilkeleri',
+              style: TextStyle(
+                fontSize: 21,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const ListTile(
+              leading: Icon(Icons.verified_user),
+              title: Text('Kimlik doğrulama'),
+              subtitle: Text('Her istekte oturum doğrulanır.'),
+            ),
+            const ListTile(
+              leading: Icon(Icons.admin_panel_settings),
+              title: Text('Rol kontrolü'),
+              subtitle: Text('Yönetici işlemleri ayrıca yetkilendirilir.'),
+            ),
+            const ListTile(
+              leading: Icon(Icons.lock),
+              title: Text('Sahiplik kontrolü'),
+              subtitle: Text('Not sahibi sunucuda kontrol edilir.'),
+            ),
+            const ListTile(
+              leading: Icon(Icons.shield),
+              title: Text('Yetkisiz erişim'),
+              subtitle: Text('İzinsiz istekler reddedilir.'),
             ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
       ),
     );
   }
