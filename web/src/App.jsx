@@ -1,122 +1,276 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useMemo, useState } from "react";
+
+const demoUsers = [
+  { id: "user-A", name: "Kullanıcı A", role: "USER" },
+  { id: "user-B", name: "Kullanıcı B", role: "USER" },
+  { id: "admin-1", name: "Yönetici", role: "ADMIN" },
+];
+
+const notes = [
+  {
+    id: "note-101",
+    ownerId: "user-A",
+    title: "Proje planı",
+    content: "Güvenli not uygulamasının geliştirme adımları.",
+  },
+  {
+    id: "note-102",
+    ownerId: "user-A",
+    title: "Toplantı notları",
+    content: "Yeni sürüm için yapılacak işler.",
+  },
+  {
+    id: "note-201",
+    ownerId: "user-B",
+    title: "Kişisel notlar",
+    content: "Kullanıcı B tarafından oluşturulmuş özel not.",
+  },
+  {
+    id: "note-202",
+    ownerId: "user-B",
+    title: "Alışveriş listesi",
+    content: "Market alışverişi için notlar.",
+  },
+];
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [currentUserId, setCurrentUserId] = useState("user-A");
+  const [selectedNote, setSelectedNote] = useState(null);
+  const [attackNoteId, setAttackNoteId] = useState("note-201");
+  const [message, setMessage] = useState("");
+
+  const currentUser = demoUsers.find(
+    (user) => user.id === currentUserId,
+  );
+
+  const visibleNotes = useMemo(() => {
+    return notes.filter((note) => {
+      if (currentUser.role === "ADMIN") {
+        return false;
+      }
+
+      return note.ownerId === currentUser.id;
+    });
+  }, [currentUser]);
+
+  function openNote(note) {
+    // Bu kontrol sadece arayüz davranışıdır.
+    // Gerçek güvenlik sunucuda uygulanmalıdır.
+    if (
+      currentUser.role !== "ADMIN" &&
+      note.ownerId !== currentUser.id
+    ) {
+      setMessage("Erişim reddedildi: Bu not size ait değil.");
+      setSelectedNote(null);
+      return;
+    }
+
+    if (currentUser.role === "ADMIN") {
+      setMessage(
+        "Yönetici için ayrıca sunucu tarafı yetki kontrolü gerekir.",
+      );
+      return;
+    }
+
+    setSelectedNote(note);
+    setMessage("Not başarıyla görüntülendi.");
+  }
+
+  function simulateIdorAttack() {
+    const targetNote = notes.find(
+      (note) => note.id === attackNoteId,
+    );
+
+    if (!targetNote) {
+      setMessage("404: Not bulunamadı.");
+      return;
+    }
+
+    if (
+      currentUser.role !== "ADMIN" &&
+      targetNote.ownerId !== currentUser.id
+    ) {
+      setSelectedNote(null);
+      setMessage(
+        "403 simülasyonu: Başka kullanıcıya ait nota erişim reddedildi.",
+      );
+      return;
+    }
+
+    if (currentUser.role === "ADMIN") {
+      setMessage(
+        "Yönetici erişimi için tanımlı izin ve iş gereği doğrulanmalıdır.",
+      );
+      return;
+    }
+
+    setSelectedNote(targetNote);
+    setMessage("Kendi notunuza erişim sağlandı.");
+  }
+
+  function changeUser(event) {
+    setCurrentUserId(event.target.value);
+    setSelectedNote(null);
+    setMessage("");
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
+    <main className="app">
+      <header className="header">
         <div>
-          <h1>Get started</h1>
+          <span className="eyebrow">GÜVENLİK EĞİTİM PROJESİ</span>
+          <h1>Güvenli Not Yönetimi</h1>
           <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
+            Kişisel notlarınızı görüntüleyin ve erişim
+            politikalarını inceleyin.
           </p>
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
+
+        <div className="user-panel">
+          <label htmlFor="user">Demo kullanıcısı</label>
+          <select
+            id="user"
+            value={currentUserId}
+            onChange={changeUser}
+          >
+            {demoUsers.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.name} ({user.role})
+              </option>
+            ))}
+          </select>
+        </div>
+      </header>
+
+      <section className="security-banner">
+        <strong>Güvenlik hatırlatması</strong>
+        <p>
+          Bu uygulamadaki kullanıcı seçimi ve sahiplik
+          kontrolleri yalnızca eğitim amaçlıdır. Gerçek
+          kimlik doğrulama ve yetkilendirme sunucuda yapılmalıdır.
+        </p>
       </section>
 
-      <div className="ticks"></div>
+      <section className="content">
+        <div className="notes-section">
+          <div className="section-heading">
+            <div>
+              <h2>Notlarım</h2>
+              <p>
+                {currentUser.name} için gösterilen notlar
+              </p>
+            </div>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+            <span className="count">
+              {visibleNotes.length} not
+            </span>
+          </div>
+
+          {currentUser.role === "ADMIN" ? (
+            <div className="empty-state">
+              <h3>Normal not listesi gösterilmiyor</h3>
+              <p>
+                Yönetici erişimi otomatik olarak tüm notlara
+                erişim anlamına gelmez. Ayrı bir yetki gerekir.
+              </p>
+            </div>
+          ) : (
+            <div className="note-grid">
+              {visibleNotes.map((note) => (
+                <article className="note-card" key={note.id}>
+                  <span className="note-label">ÖZEL NOT</span>
+                  <h3>{note.title}</h3>
+                  <p>{note.content}</p>
+
+                  <div className="note-footer">
+                    <code>{note.id}</code>
+                    <button onClick={() => openNote(note)}>
+                      Görüntüle
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
+
+        <aside className="attack-panel">
+          <span className="eyebrow">GÜVENLİK TESTİ</span>
+          <h2>IDOR / BOLA denemesi</h2>
+
+          <p>
+            Başka bir kullanıcının not kimliğini girerek
+            erişim denemesi yapın.
+          </p>
+
+          <label htmlFor="attack-id">Hedef not kimliği</label>
+
+          <input
+            id="attack-id"
+            value={attackNoteId}
+            onChange={(event) =>
+              setAttackNoteId(event.target.value)
+            }
+          />
+
+          <button
+            className="danger-button"
+            onClick={simulateIdorAttack}
+          >
+            Erişimi dene
+          </button>
+
+          {message && (
+            <div className="result" role="status">
+              {message}
+            </div>
+          )}
+
+          {selectedNote && (
+            <div className="selected-note">
+              <h3>{selectedNote.title}</h3>
+              <p>{selectedNote.content}</p>
+              <code>{selectedNote.id}</code>
+            </div>
+          )}
+        </aside>
+      </section>
+
+      <section className="principles">
+        <h2>Güvenlik ilkeleri</h2>
+
+        <div className="principle-grid">
+          <div>
+            <span>01</span>
+            <h3>Kimlik doğrulama</h3>
+            <p>Her API isteğinde oturum doğrulanır.</p>
+          </div>
+
+          <div>
+            <span>02</span>
+            <h3>Rol kontrolü</h3>
+            <p>Yönetici işlemleri ayrı izin gerektirir.</p>
+          </div>
+
+          <div>
+            <span>03</span>
+            <h3>Sahiplik kontrolü</h3>
+            <p>Notun sahibi sunucuda doğrulanır.</p>
+          </div>
+
+          <div>
+            <span>04</span>
+            <h3>Güvenli yanıt</h3>
+            <p>Yetkisiz erişim reddedilir.</p>
+          </div>
         </div>
       </section>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      <footer>
+        Güvenli Not Yönetimi · React Eğitim Uygulaması
+      </footer>
+    </main>
+  );
 }
 
-export default App
+export default App;
